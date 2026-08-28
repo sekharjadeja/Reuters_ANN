@@ -27,17 +27,25 @@ This repository contains a full pipeline that parses local raw document files, e
 4. **Regularization & Optimization:**
 5. Features L2 kernel weight regularization, Dropout, Batch Normalization, and Early Stopping callbacks to prevent overfitting.
 
----<img width="716" height="143" alt="dataset_contents" src="https://github.com/user-attachments/assets/0de1abe0-cd30-4469-adf4-f98252ad4ecc" />
-
-<img width="1200" height="400" alt="training_results" src="https://github.com/user-attachments/assets/1d84403b-3bef-423a-9a25-5a102f5f5f67" />
 
 ## 📊 Model Performance & Results
 
-* **Training Set:** 7,769 documents
-* **Test Set:** 3,019 documents
-* **Total Target Classes:** 90 unique financial topics
-* **Exact-Match Test Accuracy:** `85.76%`
-* **Test AUC Score:** `0.9229`
+* **Contents of dataset:**
+<img width="716" height="143" alt="dataset_contents" src="https://github.com/user-attachments/assets/0e3d0493-1d34-4c20-97df-91c472e3e512" />
+
+* **training of ANN model with 10 epochs:**
+<img width="1451" height="383" alt="training1" src="https://github.com/user-attachments/assets/914316d1-9d28-450a-bbea-0825e3355761" /> <img width="1491" height="402" alt="training2" src="https://github.com/user-attachments/assets/a1e9795b-d9e6-404a-b915-5005583204c2" />
+
+
+
+* **Overall Metrics:**
+<img width="690" height="557" alt="overall_metrics" src="https://github.com/user-attachments/assets/d278966a-eb16-4ff0-94e7-06aeb6b0d9bf" />
+
+
+
+* **Model accuracy and Loss during training:**
+    <img width="1200" height="400" alt="training_results" src="https://github.com/user-attachments/assets/03483211-11aa-407e-bd3f-74a5a476c657" />
+
 
 
 
