@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Reuters-21578 Financial News Multi-Label Text Classification ANN Intelligence Platform">
+  <title>Reuters Financial AI | Multi-Label Neural Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="glow-sphere sphere-1"></div>
+  <div class="glow-sphere sphere-2"></div>
+  <div class="glow-sphere sphere-3"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-badge">
+          <span class="pulse-dot"></span>
+          ANN v2.2
+        </div>
+        <div class="brand-titles">
+          <h1>Reuters Intelligence <span>ANN</span></h1>
+          <p>Multi-Label Financial News Topic Classifier</p>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" role="tablist">
+        <button class="nav-tab active" id="tab-btn-classifier" data-tab="classifier" role="tab" aria-selected="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+          Live Classifier
+        </button>
+        <button class="nav-tab" id="tab-btn-analytics" data-tab="analytics" role="tab" aria-selected="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Model Analytics
+        </button>
+        <button class="nav-tab" id="tab-btn-explorer" data-tab="explorer" role="tab" aria-selected="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+          Category Catalog (90)
+        </button>
+      </nav>
+
+      <div class="system-status">
+        <span class="status-indicator"></span>
+        <span class="status-text">TensorFlow Engine Online</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- ==================== TAB 1: CLASSIFIER ==================== -->
+    <section id="panel-classifier" class="tab-panel active">
+      <!-- Top banner stats -->
+      <div class="quick-stats-strip">
+        <div class="stat-pill">
+          <span class="stat-label">Micro F1</span>
+          <span class="stat-val text-cyan">85.98%</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Exact Match</span>
+          <span class="stat-val text-emerald">80.72%</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Inference Latency</span>
+          <span class="stat-val text-violet">~0.14 ms</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Target Categories</span>
+          <span class="stat-val text-amber">90 Financial Topics</span>
+        </div>
+      </div>
+
+      <!-- Two-column classifier layout -->
+      <div class="classifier-grid">
+        <!-- Input Column -->
+        <div class="glass-card input-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-bubble">✍️</span>
+              <h3>Financial News Input</h3>
+            </div>
+            <div class="sample-actions">
+              <button id="btn-random-test" class="btn btn-outline" title="Fetch actual test document with ground truth">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                Random Test File
+              </button>
+              <button id="btn-clear" class="btn btn-ghost" title="Clear text">Clear</button>
+            </div>
+          </div>
+
+          <!-- Quick Samples Selector -->
+          <div class="samples-bar">
+            <span class="samples-label">Presets:</span>
+            <div class="sample-chips" id="sample-chips-container">
+              <!-- Dynamically filled -->
+              <span class="chip-skeleton">Loading presets...</span>
+            </div>
+          </div>
+
+          <!-- Ground Truth comparison banner (if random test file loaded) -->
+          <div id="ground-truth-banner" class="ground-truth-banner" style="display: none;">
+            <div class="gt-header">
+              <span class="gt-title">Ground-Truth Benchmark Document: <code id="gt-file-id">test/14828</code></span>
+              <span class="gt-badge">Reuters Benchmark</span>
+            </div>
+            <div class="gt-tags-row">
+              <span class="gt-label">Actual Target Labels:</span>
+              <div id="gt-tags-container" class="tags-container"></div>
+            </div>
+          </div>
+
+          <!-- Textarea -->
+          <div class="textarea-wrapper">
+            <textarea id="article-input" placeholder="Type or paste a financial, business, or commodity news report here (e.g. quarterly earnings, mergers & acquisitions, central bank policy, crude oil exports)..." spellcheck="false"></textarea>
+            <div class="textarea-footer">
+              <span id="char-counter">0 words | 0 characters</span>
+              <span class="helper-text">Accepts multi-sentence financial copy</span>
+            </div>
+          </div>
+
+          <!-- Interactive Threshold Slider -->
+          <div class="threshold-controls">
+            <div class="threshold-label-row">
+              <label for="threshold-slider">
+                Multi-Label Confidence Threshold:
+                <strong id="threshold-val" class="text-cyan">0.35</strong>
+              </label>
+              <span class="threshold-hint">Adjust to tune Precision vs Recall trade-off</span>
+            </div>
+            <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.35">
+            <div class="slider-marks">
+              <span>0.10 (High Recall)</span>
+              <span>0.35 (Balanced)</span>
+              <span>0.50 (Standard)</span>
+              <span>0.90 (High Precision)</span>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <div class="action-footer">
+            <button id="btn-classify" class="btn btn-primary btn-glow">
+              <span class="btn-spinner" id="btn-spinner"></span>
+              <span class="btn-text">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/></svg>
+                Classify Financial News
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Output / Prediction Results Column -->
+        <div class="glass-card output-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-bubble">🎯</span>
+              <h3>Neural Topic Predictions</h3>
+            </div>
+            <div class="meta-tag" id="latency-tag">
+              Latency: <strong id="latency-val">-- ms</strong>
+            </div>
+          </div>
+
+          <!-- Results Body -->
+          <div id="results-placeholder" class="results-placeholder">
+            <div class="placeholder-icon">📊</div>
+            <h4>No Predictions Yet</h4>
+            <p>Paste a financial story or click a preset above, then press <strong>Classify Financial News</strong> to run the neural model.</p>
+          </div>
+
+          <div id="results-content" class="results-content" style="display: none;">
+            <!-- Active Predicted Topics -->
+            <div class="results-section">
+              <div class="section-title-row">
+                <h4>Identified Topic Categories</h4>
+                <span class="badge badge-pill" id="predicted-count-badge">0 Topics</span>
+              </div>
+              <div id="active-topics-container" class="active-topics-container">
+                <!-- Topics badges -->
+              </div>
+            </div>
+
+            <!-- Probability breakdown bars -->
+            <div class="results-section">
+              <h4>Candidate Probability Distribution</h4>
+              <div id="probability-meters-container" class="probability-meters-container">
+                <!-- Meters rendered dynamically -->
+              </div>
+            </div>
+
+            <!-- TF-IDF Salient Tokens -->
+            <div class="results-section">
+              <h4>Key Financial Features Detected</h4>
+              <div id="tokens-container" class="tokens-container">
+                <!-- Tokens rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: MODEL ANALYTICS ==================== -->
+    <section id="panel-analytics" class="tab-panel">
+      <!-- KPI Stats Grid -->
+      <div class="kpi-grid">
+        <div class="glass-card kpi-card">
+          <div class="kpi-icon icon-cyan">🎯</div>
+          <div class="kpi-body">
+            <span class="kpi-title">Micro F1-Score</span>
+            <div class="kpi-number text-cyan">85.98%</div>
+            <span class="kpi-sub">Dominant Multi-Topic Accuracy</span>
+          </div>
+        </div>
+
+        <div class="glass-card kpi-card">
+          <div class="kpi-icon icon-emerald">✅</div>
+          <div class="kpi-body">
+            <span class="kpi-title">Exact Match (Subset)</span>
+            <div class="kpi-number text-emerald">80.72%</div>
+            <span class="kpi-sub">100% Correct Across All 90 Topics</span>
+          </div>
+        </div>
+
+        <div class="glass-card kpi-card">
+          <div class="kpi-icon icon-violet">📈</div>
+          <div class="kpi-body">
+            <span class="kpi-title">Micro ROC-AUC</span>
+            <div class="kpi-number text-violet">0.9763</div>
+            <span class="kpi-sub">Area Under ROC Curve</span>
+          </div>
+        </div>
+
+        <div class="glass-card kpi-card">
+          <div class="kpi-icon icon-amber">⚡</div>
+          <div class="kpi-body">
+            <span class="kpi-title">Inference Speed</span>
+            <div class="kpi-number text-amber">0.14 ms</div>
+            <span class="kpi-sub">Per Single Document Evaluation</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Charts Row -->
+      <div class="charts-grid">
+        <div class="glass-card chart-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-bubble">📈</span>
+              <h3>Accuracy Convergence over 10 Epochs</h3>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="accuracyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-bubble">📉</span>
+              <h3>Binary Cross-Entropy Loss Curve</h3>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="lossChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Architecture and Diagnostic Comparison -->
+      <div class="architecture-grid">
+        <div class="glass-card arch-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-bubble">🧠</span>
+              <h3>Neural Network Specifications</h3>
+            </div>
+          </div>
+          <ul class="spec-list">
+            <li>
+              <span>Input Dimension</span>
+              <strong>10,000 TF-IDF Features</strong>
+            </li>
+            <li>
+              <span>Layer 1</span>
+              <strong>Dense 512 + ReLU + Dropout(0.5)</strong>
+            </li>
+            <li>
+              <span>Layer 2</span>
+              <strong>Dense 256 + ReLU + Dropout(0.3)</strong>
+            </li>
+            <li>
+              <span>Output Layer</span>
+              <strong>Dense 90 + Sigmoid (Independent Probabilities)</strong>
+            </li>
+            <li>
+              <span>Total Parameters</span>
+              <strong class="text-cyan">5,274,970 weights (~20.1 MB)</strong>
+            </li>
+            <li>
+              <span>Loss Objective</span>
+              <strong>Binary Cross-Entropy (Per-topic BCE)</strong>
+            </li>
+            <li>
+              <span>Optimizer</span>
+              <strong>Adam (LR=0.001)</strong>
+            </li>
+          </ul>
+        </div>
+
+        <div class="glass-card arch-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-bubble">⚖️</span>
+              <h3>Multi-Label Diagnostic Trade-offs</h3>
+            </div>
+          </div>
+          <div class="diagnostic-box">
+            <div class="diag-item">
+              <div class="diag-header">
+                <span>Micro Precision</span>
+                <strong>91.09%</strong>
+              </div>
+              <div class="diag-bar-track">
+                <div class="diag-bar-fill" style="width: 91.09%; background: #06b6d4;"></div>
+              </div>
+            </div>
+
+            <div class="diag-item">
+              <div class="diag-header">
+                <span>Micro Recall</span>
+                <strong>81.41%</strong>
+              </div>
+              <div class="diag-bar-track">
+                <div class="diag-bar-fill" style="width: 81.41%; background: #10b981;"></div>
+              </div>
+            </div>
+
+            <div class="diag-item">
+              <div class="diag-header">
+                <span>Hamming Loss (Error Rate)</span>
+                <strong>0.00366</strong>
+              </div>
+              <div class="diag-bar-track">
+                <div class="diag-bar-fill" style="width: 0.366%; background: #ef4444;"></div>
+              </div>
+            </div>
+
+            <div class="diag-item">
+              <div class="diag-header">
+                <span>Macro F1 (Class Imbalance Impact)</span>
+                <strong>45.03%</strong>
+              </div>
+              <div class="diag-bar-track">
+                <div class="diag-bar-fill" style="width: 45.03%; background: #f59e0b;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: CATEGORY CATALOG ==================== -->
+    <section id="panel-explorer" class="tab-panel">
+      <div class="glass-card explorer-card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-bubble">📚</span>
+            <h3>Reuters-21578 Financial Topics Directory</h3>
+          </div>
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="category-search" placeholder="Search topic (e.g. earn, crude, grain, fx)...">
+          </div>
+        </div>
+
+        <p class="explorer-desc">
+          The Reuters-21578 benchmark contains 90 distinct financial news topics. Articles may belong to multiple categories simultaneously.
+        </p>
+
+        <div id="category-grid" class="category-grid">
+          <!-- Populated by JavaScript -->
+          <div class="cat-skeleton">Loading topic catalog...</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>Reuters-21578 Artificial Neural Network Pipeline • Powered by TensorFlow & Keras • High-Performance Multi-Label NLP</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

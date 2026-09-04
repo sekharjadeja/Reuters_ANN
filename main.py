@@ -77,25 +77,3 @@ model.fit(X_train, y_train, epochs=10, batch_size=64, validation_split=0.1)
 
 test_loss, test_acc = model.evaluate(X_test, y_test)
 print(f"\nFinal Test Accuracy: {test_acc * 100:.2f}%")
-
-
-
-
-"""THE RESULTS AND ACCURACY OF THE ABOVE MODEL"""
-
-"""
-==================================================
-              HISTORICAL RUN RESULTS
-==================================================
-Executed on: Local Virtual Environment (.venv)
-
-Training Log:
-Epoch 1/10  - loss: 0.0879 - accuracy: 0.5415 - val_loss: 0.0312 - val_accuracy: 0.7117
-Epoch 5/10  - loss: 0.0072 - accuracy: 0.8929 - val_loss: 0.0202 - val_accuracy: 0.7941
-Epoch 10/10 - loss: 0.0046 - accuracy: 0.9068 - val_loss: 0.0211 - val_accuracy: 0.7954
-
-Test Evaluation (3,019 samples):
-- Final Test Loss    : 0.0461
-- Final Test Accuracy: 85.72%
-==================================================
-"""
