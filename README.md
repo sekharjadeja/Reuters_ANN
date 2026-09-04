@@ -37,18 +37,18 @@
 
 Financial news articles routinely span multiple interrelated topics at once—for instance, an article describing quarterly corporate results may concurrently involve acquisitions, foreign currency exposure, and dividend declarations. Framing this challenge as a standard single-label classification introduces severe distortion and data loss.
 
-This repository implements a **multi-label deep learning pipeline** using an Artificial Neural Network (ANN) trained on the benchmark **Reuters-21578** financial news corpus. It processes raw document files, extracts high-dimensional TF-IDF bigram features, trains a regularized Multi-Layer Perceptron (MLP), and serves predictions through an interactive Flask dashboard with sub-millisecond inference latency.
+This repository implements a **multi-label deep learning pipeline** using an Artificial Neural Network (ANN) trained on the benchmark **Reuters-21578** financial news corpus. It processes raw document files, extracts high-dimensional TF-IDF unigram features across a 10,000-word vocabulary, trains a regularized Multi-Layer Perceptron (MLP), and serves predictions through an interactive Flask dashboard with sub-millisecond inference latency.
 
 ---
 
 ## ✨ Key Features
 
 - **🎯 Multi-Label Classification Head:** Employs 90 independent **Sigmoid** activation outputs paired with **Binary Cross-Entropy Loss**, allowing documents to simultaneously belong to zero, one, or several topics.
-- **🔤 Context-Aware Bigram TF-IDF:** Utilizes `tf.keras.layers.TextVectorization` with TF-IDF weighting and `ngrams=(1, 2)` across 10,000 features to capture financial collocations (e.g., *"crude oil"*, *"net income"*, *"tender offer"*).
-- **🛡️ Multi-Tier Regularization:** Built with Batch Normalization, dual Dropout layers (0.5 and 0.3), and L2 weight decay to prevent overfitting on imbalanced categories.
+- **🔤 Vocabulary-Adapted TF-IDF:** Utilizes `tf.keras.layers.TextVectorization` with TF-IDF weighting across the top 10,000 vocabulary tokens to represent financial news articles with term weighting.
+- **🛡️ Dropout Regularization:** Built with dual Dropout layers (0.5 and 0.3) to prevent overfitting on imbalanced categories and maintain generalization on test articles.
 - **🖥️ Modern Web Dashboard:** A dark-themed responsive UI featuring real-time Chart.js probability bars, a dynamic confidence threshold slider (10%–90%), token count analytics, and pre-loaded Reuters test samples.
-- **⚡ Real-Time REST API:** Clean JSON endpoints for automated inference (`/api/predict`), metadata inspection (`/api/info`), and curated test cases (`/api/sample`).
-- **📦 Pre-Trained Artifacts:** Includes exported Keras 3 model, class dictionary, and vocabulary for instant out-of-the-box evaluation without mandatory retraining.
+- **⚡ Real-Time REST API:** Clean JSON endpoints for automated inference (`/api/predict`), model metadata inspection (`/api/info`), metrics (`/api/metrics`), and test cases (`/api/samples`, `/api/random_test`).
+- **📦 Pre-Trained Artifacts:** Includes exported Keras model (`reuters_ann_model.keras`), class dictionary, and precomputed vocabulary + IDF weights (`vocab.json`, `idf_weights.json`) for instant out-of-the-box evaluation without mandatory retraining or training corpus dependencies.
 
 ---
 
@@ -56,29 +56,28 @@ This repository implements a **multi-label deep learning pipeline** using an Art
 
 ```mermaid
 flowchart TD
-    A["Raw Reuters Article / Text Input"] --> B["Text Preprocessing & Stopword Stripping"]
-    B --> C["Keras TextVectorization<br/>(10,000 Bigram TF-IDF Tokens)"]
-    C --> D["Dense Layer 512 Units (ReLU)<br/>+ L2 Regularization"]
-    D --> E["Batch Normalization + Dropout (0.5)"]
-    E --> F["Dense Layer 256 Units (ReLU)<br/>+ L2 Regularization"]
-    F --> G["Batch Normalization + Dropout (0.3)"]
-    G --> H["Dense Output 90 Units (Sigmoid)<br/>Independent Topic Probabilities"]
-    H --> I{"Dynamic Threshold Filter<br/>(Default: 0.30 - 0.50)"}
-    I --> J["Detected Topic Categories & Confidence Scores"]
+    A["Raw Reuters Article / Text Input"] --> B["Keras TextVectorization<br/>(10,000 TF-IDF Features)"]
+    B --> C["Dense Layer 512 Units (ReLU)"]
+    C --> D["Dropout (0.5)"]
+    D --> E["Dense Layer 256 Units (ReLU)"]
+    E --> F["Dropout (0.3)"]
+    F --> G["Dense Output 90 Units (Sigmoid)<br/>Independent Topic Probabilities"]
+    G --> H{"Dynamic Threshold Filter<br/>(Default: 0.10 - 0.90)"}
+    H --> I["Detected Topic Categories & Confidence Scores"]
 ```
 
 ### Layer Specifications
 
-| Layer | Type | Output Shape | Parameters | Activation & Regularization |
+| Layer | Type | Output Shape | Parameters | Activation & Purpose |
 | :--- | :--- | :--- | :--- | :--- |
-| **Input** | `InputLayer` | `(None, 10000)` | 0 | TF-IDF Normalized Sparse Vector |
-| **Dense 1** | `Dense` | `(None, 512)` | 5,120,512 | ReLU + L2 Weight Penalty (`1e-4`) |
-| **Norm 1** | `BatchNormalization` | `(None, 512)` | 2,048 | Normalizes internal activations |
+| **Input** | `InputLayer` | `(None, 10000)` | 0 | TF-IDF Normalized Feature Vector |
+| **Dense 1** | `Dense` | `(None, 512)` | 5,120,512 | ReLU activation |
 | **Drop 1** | `Dropout` | `(None, 512)` | 0 | 50% neuron dropout rate |
-| **Dense 2** | `Dense` | `(None, 256)` | 131,328 | ReLU + L2 Weight Penalty (`1e-4`) |
-| **Norm 2** | `BatchNormalization` | `(None, 256)` | 1,024 | Accelerates convergence stability |
+| **Dense 2** | `Dense` | `(None, 256)` | 131,328 | ReLU activation |
 | **Drop 2** | `Dropout` | `(None, 256)` | 0 | 30% neuron dropout rate |
 | **Output** | `Dense` | `(None, 90)` | 23,130 | 90 independent **Sigmoids** |
+
+**Total Trainable Parameters:** 5,274,970 (~20.1 MB)
 
 ---
 
@@ -89,11 +88,12 @@ The model was evaluated on the official **ModApte** test split of Reuters-21578:
 | Metric | Training Set | Validation Set | Test Evaluation (ModApte) |
 | :--- | :---: | :---: | :---: |
 | **Document Count** | 7,769 | ~777 (10% split) | **3,019 documents** |
-| **Exact-Match Accuracy** | **89.95%** | **79.79%** | **85.76%** |
-| **ROC-AUC Score** | **0.9710** | **0.9450** | **0.9229** |
-| **Binary Cross-Entropy Loss** | `0.0047` | `0.0213` | **`0.0461`** |
+| **Micro F1-Score** | — | — | **85.30%** |
+| **Exact-Match Accuracy** | **89.95%** | **79.79%** | **80.36%** |
+| **Micro ROC-AUC Score** | **0.9710** | **0.9450** | **0.9770** |
+| **Hamming Loss** | — | — | **0.00397** |
 | **Total Target Categories** | 90 | 90 | **90 topics** |
-| **Inference Latency** | — | — | **< 2.5 ms / doc** |
+| **Inference Latency** | — | — | **< 1.0 ms / doc** |
 
 ### Visualizations & Training Logs
 
@@ -158,28 +158,41 @@ The Flask web application provides a browser-based UI for interacting with the n
   "predictions": [
     {
       "category": "earn",
-      "confidence": 0.9624,
-      "passed_threshold": true
+      "probability": 0.9624,
+      "percentage": 96.24,
+      "selected": true
     },
     {
       "category": "crude",
-      "confidence": 0.8841,
-      "passed_threshold": true
+      "probability": 0.8841,
+      "percentage": 88.41,
+      "selected": true
     }
   ],
-  "latency_ms": 2.15,
+  "top_candidates": [ ... ],
+  "all_candidates": [ ... ],
   "threshold": 0.35,
-  "top_topics": ["earn", "crude"]
+  "latency_ms": 1.25,
+  "word_count": 18,
+  "tokens": ["exxon", "mobil", "announced", "profits", "crude"]
 }
 ```
 
 ### 2. Model Metadata & Status
 **Endpoint:** `GET /api/info`  
-Returns system status, active class list, vocabulary dimension, and historical benchmark metrics.
+Returns system status, active class list, vocabulary dimension, total parameters, and training history.
 
-### 3. Load Sample Test Case
-**Endpoint:** `GET /api/sample`  
+### 3. Model Empirical Metrics
+**Endpoint:** `GET /api/metrics`  
+Returns computed test evaluation metrics (`micro_f1`, `exact_match_acc`, `micro_roc_auc`, `hamming_loss`, `precision`, `recall`, etc.) and training epoch curves.
+
+### 4. Load Sample Test Case
+**Endpoint:** `GET /api/samples`  
 Fetches curated Reuters sample articles with expected ground-truth labels for quick verification.
+
+### 5. Random Test Document
+**Endpoint:** `GET /api/random_test`  
+Fetches a random document from the ModApte test set with its assigned ground-truth topics.
 
 ---
 
@@ -219,6 +232,7 @@ Open your browser and navigate to:
 ```
 http://127.0.0.1:5000
 ```
+> **Note:** The application starts instantly using pre-trained artifacts (`model_artifacts/reuters_ann_model.keras`, `vocab.json`, `idf_weights.json`). If test documents are requested via `/api/random_test`, `test.zip` will be automatically unpacked if not already extracted.
 
 ---
 
@@ -231,14 +245,16 @@ python train_and_export.py
 ```
 
 This script will:
-1. Parse category mappings from `cats.txt`.
-2. Extract and tokenize documents from `training/` and `test/`.
-3. Compute bigram TF-IDF representations.
-4. Train the neural network with validation splits and early stopping.
-5. Export the trained model and metadata into `model_artifacts/`:
+1. Auto-extract `training.zip` and `test.zip` if directories are missing.
+2. Parse category mappings from `cats.txt`.
+3. Compute TF-IDF representations (10,000 vocabulary tokens) and extract IDF weights.
+4. Train the neural network for 10 epochs.
+5. Formally evaluate on the 3,019 test set documents to calculate Micro/Macro F1, ROC-AUC, Hamming Loss, and Exact-Match Accuracy.
+6. Export the trained model and complete artifacts into `model_artifacts/`:
    - `reuters_ann_model.keras` — Full Keras serialized model weights and architecture.
-   - `metadata.json` — Class list, label encoding, and training metrics history.
+   - `metadata.json` — Class list, label encoding, training history, and empirical test metrics.
    - `vocab.json` — TF-IDF vocabulary dictionary.
+   - `idf_weights.json` — Precomputed IDF weights for zero-adaptation instant startup.
 
 ---
 
@@ -247,20 +263,19 @@ This script will:
 ```text
 Reuters_ANN/
 ├── model_artifacts/               # Exported trained models and metadata
-│   ├── metadata.json              # 90 topic classes and training history
-│   ├── reuters_ann_model.keras    # Saved Keras 3 neural network (~60 MB)
-│   └── vocab.json                 # Adapted TF-IDF token dictionary
+│   ├── metadata.json              # 90 topic classes, training history, and test metrics
+│   ├── reuters_ann_model.keras    # Saved Keras neural network (~60 MB)
+│   ├── vocab.json                 # Adapted TF-IDF token dictionary
+│   └── idf_weights.json           # Precomputed IDF weights array
 ├── static/                        # Frontend UI assets
-│   ├── app.js                     # Chart.js charts, slider logic, async API calls
+│   ├── app.js                     # Dynamic threshold filtering, Chart.js, async API calls
 │   └── style.css                  # Dark-mode styling, glassmorphism, responsive grid
 ├── templates/
 │   └── index.html                 # Main dashboard interface
 ├── cats.txt                       # Reuters-21578 document ID to topic mapping
-├── stopwords                      # NLTK English stopwords list
-├── test.zip                       # 3,019 test documents (ModApte split)
-├── training.zip                   # 7,769 training documents (ModApte split)
+├── test.zip                       # 3,019 test documents (ModApte split, auto-extracted if needed)
+├── training.zip                   # 7,769 training documents (ModApte split, auto-extracted if needed)
 ├── app.py                         # Flask web application & REST API server
-├── main.py                        # Standalone training & evaluation script
 ├── train_and_export.py            # Automated training, evaluation & artifact exporter
 ├── requirements.txt               # Pinned Python package dependencies
 ├── .gitignore                     # Git exclusion rules (.venv, .idea, test/, training/)

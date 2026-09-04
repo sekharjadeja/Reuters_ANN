@@ -2,7 +2,6 @@
 tensorflow>=2.15.0
 keras>=3.0.0
 scikit-learn>=1.4.0
-nltk>=3.8.0
 numpy>=1.26.0
 
 # Web Application & Deployment

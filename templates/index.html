@@ -215,7 +215,7 @@
           <div class="kpi-icon icon-cyan">🎯</div>
           <div class="kpi-body">
             <span class="kpi-title">Micro F1-Score</span>
-            <div class="kpi-number text-cyan">85.98%</div>
+            <div class="kpi-number text-cyan" id="kpi-micro-f1">85.30%</div>
             <span class="kpi-sub">Dominant Multi-Topic Accuracy</span>
           </div>
         </div>
@@ -224,7 +224,7 @@
           <div class="kpi-icon icon-emerald">✅</div>
           <div class="kpi-body">
             <span class="kpi-title">Exact Match (Subset)</span>
-            <div class="kpi-number text-emerald">80.72%</div>
+            <div class="kpi-number text-emerald" id="kpi-exact-match">80.36%</div>
             <span class="kpi-sub">100% Correct Across All 90 Topics</span>
           </div>
         </div>
@@ -233,7 +233,7 @@
           <div class="kpi-icon icon-violet">📈</div>
           <div class="kpi-body">
             <span class="kpi-title">Micro ROC-AUC</span>
-            <div class="kpi-number text-violet">0.9763</div>
+            <div class="kpi-number text-violet" id="kpi-micro-roc-auc">0.9770</div>
             <span class="kpi-sub">Area Under ROC Curve</span>
           </div>
         </div>
@@ -242,7 +242,7 @@
           <div class="kpi-icon icon-amber">⚡</div>
           <div class="kpi-body">
             <span class="kpi-title">Inference Speed</span>
-            <div class="kpi-number text-amber">0.14 ms</div>
+            <div class="kpi-number text-amber" id="kpi-latency">0.10 ms</div>
             <span class="kpi-sub">Per Single Document Evaluation</span>
           </div>
         </div>
@@ -327,40 +327,40 @@
             <div class="diag-item">
               <div class="diag-header">
                 <span>Micro Precision</span>
-                <strong>91.09%</strong>
+                <strong id="diag-micro-prec-val">86.96%</strong>
               </div>
               <div class="diag-bar-track">
-                <div class="diag-bar-fill" style="width: 91.09%; background: #06b6d4;"></div>
+                <div class="diag-bar-fill" id="diag-micro-prec-bar" style="width: 86.96%; background: #06b6d4;"></div>
               </div>
             </div>
 
             <div class="diag-item">
               <div class="diag-header">
                 <span>Micro Recall</span>
-                <strong>81.41%</strong>
+                <strong id="diag-micro-rec-val">83.71%</strong>
               </div>
               <div class="diag-bar-track">
-                <div class="diag-bar-fill" style="width: 81.41%; background: #10b981;"></div>
+                <div class="diag-bar-fill" id="diag-micro-rec-bar" style="width: 83.71%; background: #10b981;"></div>
               </div>
             </div>
 
             <div class="diag-item">
               <div class="diag-header">
                 <span>Hamming Loss (Error Rate)</span>
-                <strong>0.00366</strong>
+                <strong id="diag-hloss-val">0.00397</strong>
               </div>
               <div class="diag-bar-track">
-                <div class="diag-bar-fill" style="width: 0.366%; background: #ef4444;"></div>
+                <div class="diag-bar-fill" id="diag-hloss-bar" style="width: 0.397%; background: #ef4444;"></div>
               </div>
             </div>
 
             <div class="diag-item">
               <div class="diag-header">
                 <span>Macro F1 (Class Imbalance Impact)</span>
-                <strong>45.03%</strong>
+                <strong id="diag-macro-f1-val">44.47%</strong>
               </div>
               <div class="diag-bar-track">
-                <div class="diag-bar-fill" style="width: 45.03%; background: #f59e0b;"></div>
+                <div class="diag-bar-fill" id="diag-macro-f1-bar" style="width: 44.47%; background: #f59e0b;"></div>
               </div>
             </div>
           </div>

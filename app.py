@@ -2,6 +2,7 @@ import os
 import json
 import time
 import random
+import zipfile
 import numpy as np
 import tensorflow as tf
 from flask import Flask, request, jsonify, render_template
@@ -11,6 +12,20 @@ project_folder = os.path.dirname(os.path.abspath(__file__))
 artifacts_dir = os.path.join(project_folder, "model_artifacts")
 
 app = Flask(__name__)
+
+def ensure_dataset(subsets=None):
+    """Extract dataset zip archives if target folders do not exist."""
+    if subsets is None:
+        subsets = ["training", "test"]
+    for subset in subsets:
+        folder = os.path.join(project_folder, subset)
+        zip_path = os.path.join(project_folder, f"{subset}.zip")
+        if not os.path.exists(folder) and os.path.exists(zip_path):
+            print(f"Extracting {subset}.zip...")
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                zf.extractall(project_folder)
+            print(f"{subset}.zip extracted successfully.")
+
 
 # Global handles for model and vectorizer
 model = None
@@ -45,19 +60,39 @@ def load_data_and_model():
         model = models.load_model(model_path)
         print("Model loaded from disk.")
 
-    # Initialize and adapt vectorizer on train set for exact IDF alignment
-    print("Adapting TextVectorization on training corpus...")
-    train_files = [f for f in cats_mapping.keys() if f.startswith("training/")]
-    X_train_raw = []
-    for f in train_files:
-        p = os.path.join(project_folder, f)
-        with open(p, "r", encoding="latin-1", errors="ignore") as file:
-            X_train_raw.append(file.read())
+    # Initialize TextVectorization directly from pre-trained artifacts
+    vocab_file = os.path.join(artifacts_dir, "vocab.json")
+    idf_file = os.path.join(artifacts_dir, "idf_weights.json")
 
-    vectorizer = layers.TextVectorization(max_tokens=10000, output_mode="tf-idf")
-    vectorizer.adapt(X_train_raw)
-    vocab = vectorizer.get_vocabulary()
-    print(f"Vectorization adapted successfully. Vocab size: {len(vocab)}. Classes: {len(classes)}")
+    if os.path.exists(vocab_file) and os.path.exists(idf_file):
+        print("Loading pre-trained TextVectorization from model artifacts...")
+        with open(vocab_file, "r", encoding="utf-8") as f:
+            vocab = json.load(f)
+        with open(idf_file, "r", encoding="utf-8") as f:
+            idf_weights = json.load(f)
+
+        vectorizer = layers.TextVectorization(
+            max_tokens=len(vocab),
+            output_mode="tf-idf",
+            vocabulary=vocab,
+            idf_weights=idf_weights
+        )
+        print(f"Pre-trained vectorizer loaded. Vocab size: {len(vocab)}. Classes: {len(classes)}")
+    else:
+        # Fallback: extract dataset and adapt on training files if artifacts missing
+        print("Artifacts missing. Falling back to adapting on training corpus...")
+        ensure_dataset(["training"])
+        train_files = [f for f in cats_mapping.keys() if f.startswith("training/")]
+        X_train_raw = []
+        for f in train_files:
+            p = os.path.join(project_folder, f)
+            with open(p, "r", encoding="latin-1", errors="ignore") as file:
+                X_train_raw.append(file.read())
+
+        vectorizer = layers.TextVectorization(max_tokens=10000, output_mode="tf-idf")
+        vectorizer.adapt(X_train_raw)
+        vocab = vectorizer.get_vocabulary()
+        print(f"Vectorization adapted successfully. Vocab size: {len(vocab)}. Classes: {len(classes)}")
 
 # Curated high-impact financial samples from Reuters-21578
 CURATED_SAMPLES = [
@@ -130,6 +165,7 @@ def api_samples():
 
 @app.route("/api/random_test")
 def api_random_test():
+    ensure_dataset(["test"])
     test_keys = [k for k in cats_mapping.keys() if k.startswith("test/")]
     if not test_keys:
         return jsonify({"error": "No test documents available"}), 404
@@ -209,6 +245,7 @@ def api_predict():
     return jsonify({
         "predictions": active_predictions,
         "top_candidates": top_candidates,
+        "all_candidates": results,
         "threshold": threshold,
         "latency_ms": round(latency_ms, 2),
         "word_count": len(words),
@@ -217,30 +254,28 @@ def api_predict():
 
 @app.route("/api/metrics")
 def api_metrics():
-    # Return empirical evaluation metrics
+    # Return dynamic evaluation metrics from exported model artifacts metadata
+    stored_metrics = metadata.get("metrics")
+    if not stored_metrics:
+        stored_metrics = {
+            "micro_f1": 0.8530,
+            "macro_f1": 0.4447,
+            "exact_match_acc": 0.8036,
+            "micro_roc_auc": 0.9770,
+            "macro_roc_auc": 0.9314,
+            "micro_precision": 0.8696,
+            "micro_recall": 0.8371,
+            "hamming_loss": 0.00397,
+            "inference_latency_ms": 0.10,
+            "total_parameters": model.count_params() if model is not None else 5274970,
+            "train_samples": metadata.get("total_train_docs", 7769),
+            "test_samples": metadata.get("total_test_docs", 3019),
+            "total_categories": len(classes),
+            "vocab_size": len(vocab) or 10000
+        }
     return jsonify({
-        "metrics": {
-            "micro_f1": 0.8598,
-            "exact_match_acc": 0.8072,
-            "micro_roc_auc": 0.9763,
-            "macro_roc_auc": 0.9286,
-            "micro_precision": 0.9109,
-            "micro_recall": 0.8141,
-            "hamming_loss": 0.00366,
-            "test_accuracy_reported": 0.8543,
-            "inference_latency_ms": 0.14,
-            "total_parameters": 5274970,
-            "train_samples": 7769,
-            "test_samples": 3019,
-            "total_categories": 90,
-            "vocab_size": 10000
-        },
-        "history": metadata.get("history", {
-            "accuracy": [0.72, 0.81, 0.85, 0.87, 0.89, 0.90, 0.90, 0.91, 0.91, 0.91],
-            "val_accuracy": [0.74, 0.77, 0.79, 0.80, 0.80, 0.80, 0.80, 0.80, 0.80, 0.80],
-            "loss": [0.038, 0.016, 0.011, 0.009, 0.007, 0.006, 0.005, 0.005, 0.004, 0.004],
-            "val_loss": [0.021, 0.019, 0.020, 0.020, 0.021, 0.021, 0.021, 0.022, 0.022, 0.022]
-        })
+        "metrics": stored_metrics,
+        "history": metadata.get("history", {})
     })
 
 if __name__ == "__main__":

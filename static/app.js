@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     thresholdVal.textContent = val.toFixed(2);
 
     // If we have previous prediction data, update display dynamically in real-time
-    if (lastPredictionData && lastPredictionData.top_candidates) {
+    if (lastPredictionData) {
       renderPredictions(lastPredictionData, val);
     }
   });
@@ -210,11 +210,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     latencyVal.textContent = `${data.latency_ms} ms`;
 
-    // Filter candidates by current threshold
-    const active = data.top_candidates.filter(c => c.probability >= threshold);
+    // Retrieve full pool of candidates (or fallback to active predictions / top candidates)
+    const pool = data.all_candidates || data.predictions || data.top_candidates || [];
+
+    // Filter candidates by current threshold across all available categories
+    const active = pool.filter(c => c.probability >= threshold);
     predictedCountBadge.textContent = `${active.length} Active Topic${active.length === 1 ? '' : 's'}`;
 
-    // Active Topic Badges
+    // Active Topic Badges - render ALL matching topics, never dropped or capped at 8
     activeTopicsContainer.innerHTML = '';
     if (active.length > 0) {
       active.forEach(item => {
@@ -234,9 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Probability meters for top candidates
+    // Probability meters: show all active candidates plus top non-active (at least 8 total for context)
     probabilityMetersContainer.innerHTML = '';
-    data.top_candidates.forEach(cand => {
+    const displayCandidates = pool.slice(0, Math.max(8, active.length));
+    displayCandidates.forEach(cand => {
       const isSelected = cand.probability >= threshold;
       const row = document.createElement('div');
       row.className = `prob-meter-row ${isSelected ? 'selected' : ''}`;
@@ -283,6 +287,54 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/metrics');
       const data = await res.json();
       const history = data.history || {};
+      const metrics = data.metrics || {};
+
+      // Populate KPI cards dynamically from computed metrics
+      if (metrics.micro_f1 !== undefined) {
+        const kpiF1 = document.getElementById('kpi-micro-f1');
+        if (kpiF1) kpiF1.textContent = `${(metrics.micro_f1 * 100).toFixed(2)}%`;
+      }
+      if (metrics.exact_match_acc !== undefined) {
+        const kpiEM = document.getElementById('kpi-exact-match');
+        if (kpiEM) kpiEM.textContent = `${(metrics.exact_match_acc * 100).toFixed(2)}%`;
+      }
+      if (metrics.micro_roc_auc !== undefined) {
+        const kpiAuc = document.getElementById('kpi-micro-roc-auc');
+        if (kpiAuc) kpiAuc.textContent = metrics.micro_roc_auc.toFixed(4);
+      }
+      if (metrics.inference_latency_ms !== undefined) {
+        const kpiLat = document.getElementById('kpi-latency');
+        if (kpiLat) kpiLat.textContent = `${metrics.inference_latency_ms.toFixed(2)} ms`;
+      }
+
+      // Populate diagnostic comparison bars dynamically
+      if (metrics.micro_precision !== undefined) {
+        const precVal = document.getElementById('diag-micro-prec-val');
+        const precBar = document.getElementById('diag-micro-prec-bar');
+        const pPct = (metrics.micro_precision * 100).toFixed(2);
+        if (precVal) precVal.textContent = `${pPct}%`;
+        if (precBar) precBar.style.width = `${pPct}%`;
+      }
+      if (metrics.micro_recall !== undefined) {
+        const recVal = document.getElementById('diag-micro-rec-val');
+        const recBar = document.getElementById('diag-micro-rec-bar');
+        const rPct = (metrics.micro_recall * 100).toFixed(2);
+        if (recVal) recVal.textContent = `${rPct}%`;
+        if (recBar) recBar.style.width = `${rPct}%`;
+      }
+      if (metrics.hamming_loss !== undefined) {
+        const hlVal = document.getElementById('diag-hloss-val');
+        const hlBar = document.getElementById('diag-hloss-bar');
+        if (hlVal) hlVal.textContent = metrics.hamming_loss.toFixed(5);
+        if (hlBar) hlBar.style.width = `${Math.min(100, metrics.hamming_loss * 100).toFixed(3)}%`;
+      }
+      if (metrics.macro_f1 !== undefined) {
+        const mf1Val = document.getElementById('diag-macro-f1-val');
+        const mf1Bar = document.getElementById('diag-macro-f1-bar');
+        const mPct = (metrics.macro_f1 * 100).toFixed(2);
+        if (mf1Val) mf1Val.textContent = `${mPct}%`;
+        if (mf1Bar) mf1Bar.style.width = `${mPct}%`;
+      }
 
       const epochs = Array.from({ length: 10 }, (_, i) => `Epoch ${i + 1}`);
 

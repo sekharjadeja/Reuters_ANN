@@ -145,5 +145,21 @@
   },
   "train_time": 36.27972650527954,
   "total_train_docs": 7769,
-  "total_test_docs": 3019
+  "total_test_docs": 3019,
+  "metrics": {
+    "micro_f1": 0.853,
+    "macro_f1": 0.4447,
+    "exact_match_acc": 0.8036,
+    "micro_roc_auc": 0.977,
+    "macro_roc_auc": 0.9314,
+    "micro_precision": 0.8696,
+    "micro_recall": 0.8371,
+    "hamming_loss": 0.00397,
+    "inference_latency_ms": 0.101,
+    "total_parameters": 5274970,
+    "train_samples": 7769,
+    "test_samples": 3019,
+    "total_categories": 90,
+    "vocab_size": 10000
+  }
 }
